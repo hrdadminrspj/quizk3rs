@@ -6,121 +6,136 @@
 <title>Quiz K3 Nasional 2026</title>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: white;
-    padding: 15px;
-    text-align: center;
-  }
+body {
+  font-family: Arial, sans-serif;
+  background: #fff;
+  padding: 15px;
+  text-align: center;
+}
 
-  h1 { margin-bottom: 4px; font-size: 22px; }
-  h2 { margin-top: 0; font-size: 16px; }
+h1 { font-size: 22px; margin-bottom: 4px; }
+h2 { font-size: 15px; margin-top: 0; }
 
-  .panel {
-    margin: 15px 0;
-  }
+.panel { margin: 15px 0; }
 
-  input {
-    padding: 8px;
-    font-size: 16px;
-    text-transform: uppercase;
-    width: 160px;
-  }
+input {
+  padding: 8px;
+  font-size: 16px;
+  width: 200px;
+  text-transform: uppercase;
+}
 
-  button {
-    padding: 8px 14px;
-    font-size: 16px;
-    cursor: pointer;
-  }
+button {
+  padding: 8px 14px;
+  font-size: 16px;
+  cursor: pointer;
+}
 
-  .score {
-    margin-top: 10px;
-    font-size: 18px;
-    font-weight: bold;
-  }
+.score, .timer {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: bold;
+}
 
-  .msg {
-    margin-top: 6px;
-    font-weight: bold;
-  }
+.msg {
+  margin-top: 6px;
+  font-weight: bold;
+}
 
-  table {
-    border-collapse: collapse;
-    margin: auto;
-    max-width: 100%;
-  }
+table {
+  border-collapse: collapse;
+  margin: auto;
+}
 
+td {
+  border: 1px solid #000;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.highlight { background: #c8e6c9; }
+.locked { background: #eee; }
+
+@media (max-width: 768px) {
   td {
-    border: 1px solid #000;
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-    font-weight: bold;
-    text-align: center;
+    width: 5vw;
+    height: 5vw;
+    font-size: 3vw;
   }
-
-  .highlight {
-    background: gold;
-  }
-
-  /* === RESPONSIVE MOBILE === */
-  @media (max-width: 768px) {
-    td {
-      width: 5vw;
-      height: 5vw;
-      font-size: 3vw;
-    }
-  }
+}
 </style>
 </head>
 
 <body>
 
 <h1>QUIZ K3 NASIONAL 2026</h1>
-<h2>RS PREMIER JATINEGARA</h2>
+<h2>RS Premier Jatinegara</h2>
+
+<div class="panel">
+  <input id="playerName" placeholder="Nama peserta">
+</div>
 
 <div class="panel">
   <input id="searchWord" placeholder="Cari kata...">
   <button onclick="searchWord()">Cari</button>
-  <div class="score">Skor: <span id="score">0</span></div>
-  <div id="message" class="msg"></div>
 </div>
+
+<div class="timer">
+  Waktu: <span id="time">10:00</span>
+</div>
+
+<div class="score">
+  Skor: <span id="score">0</span>
+</div>
+
+<div id="message" class="msg"></div>
 
 <table id="grid"></table>
 
 <script>
-const WORDS = [
- "YOGATAMA","ALVIAN","VERONICA","CHRISTY","RIAHERAWATI",
- "CARDIACWARD","COLUMBIAASIA","BINTARO","EMERGENCY","SPESIALIS",
- "CTSCAN","PENSIUN","PURCHASING","PERSONALIA","STETOSKOP",
- "JARUM","INFUS","JAMSOSTEK","PREMIER","RADIOLOGI",
- "REHABILITASI","ISOLASI","INTENSIVE","INTERMEDIATE",
- "APD","PPE","K3","OSHA","JSA","HAZARD","RISIKO","EVAKUASI",
- "DAMKAR","APAR","HYDRANT","AWARENESS","ERGONOMI","SANITASI",
- "HYGIENE","VAKSIN","MEDIS","DOKTER","PERAWAT","AMBULANS",
- "ICU","FARMASI","DIAGNOSA","TERAPI"
+/* =============================
+   KONFIGURASI
+============================= */
+const VALID_WORDS = [
+  "K3","APAR","ISOLASI","PPE","JSA","DAMKAR","HYDRANT",
+  "RADIOLOGI","EMERGENCY","INTENSIVE","INTERMEDIATE",
+  "REHABILITASI","STETOSKOP","INFUS","JARUM","CTSCAN",
+  "PREMIER","JATINEGARA","PASIEN","PERAWAT","DOKTER",
+  "KESELAMATAN","KESEHATAN","RISIKO","PROSEDUR",
+  "PELINDUNG","KERJA","LINGKUNGAN","AMAN","SIAGA",
+  "EVAKUASI","KEBAKARAN","INSIDEN","PENCEGAHAN",
+  "PENGENDALIAN","KEPATUHAN","EDUKASI","AWARENESS",
+  "INSPEKSI","MONITORING","PENGAWASAN","TANGGUNGJAWAB",
+  "KEWASPADAAN","KESIAPSIAGAAN","PROFESIONAL",
+  "DISIPLIN","STANDAR","SIGAP","AMANAH"
 ];
 
+const WORDS = [...VALID_WORDS];
 const SIZE = 20;
-const grid = Array.from({ length: SIZE }, () =>
-  Array.from({ length: SIZE }, () => "")
-);
+const DIR = [[0,1],[1,0],[-1,1]];
 
-// Arah mudah dibaca
-const DIR = [
-  [0,1],   // mendatar
-  [1,0],   // menurun
-  [-1,1]   // diagonal naik kanan
-];
-
+/* =============================
+   STATE
+============================= */
 let score = 0;
+let gameOver = false;
+let timeLeft = 600;
 const foundWords = new Set();
+const permanentHighlight = new Set();
+
+/* =============================
+   GRID
+============================= */
+const grid = Array.from({length: SIZE}, () => Array(SIZE).fill(""));
 
 function rand(n){ return Math.floor(Math.random()*n); }
 
 function canPlace(word,r,c,dr,dc){
   for(let i=0;i<word.length;i++){
-    let nr=r+i*dr, nc=c+i*dc;
+    let nr=r+i*dr,nc=c+i*dc;
     if(nr<0||nc<0||nr>=SIZE||nc>=SIZE) return false;
     if(grid[nr][nc] && grid[nr][nc]!==word[i]) return false;
   }
@@ -130,10 +145,11 @@ function canPlace(word,r,c,dr,dc){
 function placeWord(word){
   for(let t=0;t<400;t++){
     let [dr,dc]=DIR[rand(DIR.length)];
-    let r=rand(SIZE), c=rand(SIZE);
+    let r=rand(SIZE),c=rand(SIZE);
     if(canPlace(word,r,c,dr,dc)){
-      for(let i=0;i<word.length;i++)
+      for(let i=0;i<word.length;i++){
         grid[r+i*dr][c+i*dc]=word[i];
+      }
       return;
     }
   }
@@ -141,17 +157,17 @@ function placeWord(word){
 
 WORDS.forEach(placeWord);
 
-// huruf pengganggu
 for(let r=0;r<SIZE;r++){
   for(let c=0;c<SIZE;c++){
-    if(!grid[r][c])
+    if(!grid[r][c]){
       grid[r][c]=String.fromCharCode(65+rand(26));
+    }
   }
 }
 
-// render grid
 const table=document.getElementById("grid");
 const cells=[];
+
 grid.forEach((row,r)=>{
   const tr=document.createElement("tr");
   cells[r]=[];
@@ -164,48 +180,86 @@ grid.forEach((row,r)=>{
   table.appendChild(tr);
 });
 
+/* =============================
+   GAME LOGIC
+============================= */
 function clearHighlight(){
-  cells.flat().forEach(td=>td.classList.remove("highlight"));
+  cells.flat().forEach((td,i)=>{
+    if(!permanentHighlight.has(i)) td.classList.remove("highlight");
+  });
 }
 
 function searchWord(){
-  clearHighlight();
-  const word=document.getElementById("searchWord").value.toUpperCase();
+  if(gameOver) return;
+
+  const word=document.getElementById("searchWord").value.toUpperCase().trim();
   const msg=document.getElementById("message");
-  if(!word){ msg.textContent=""; return; }
+
+  clearHighlight();
+
+  if(!VALID_WORDS.includes(word)){
+    msg.textContent="Kata tidak termasuk jawaban";
+    return;
+  }
+
+  if(foundWords.has(word)){
+    msg.textContent="Kata sudah ditemukan";
+    return;
+  }
 
   for(let r=0;r<SIZE;r++){
     for(let c=0;c<SIZE;c++){
       for(let [dr,dc] of DIR){
-        let ok=true, coords=[];
+        let coords=[],ok=true;
         for(let i=0;i<word.length;i++){
-          let nr=r+i*dr, nc=c+i*dc;
-          if(nr<0||nc<0||nr>=SIZE||nc>=SIZE ||
-             grid[nr][nc]!==word[i]){
+          let nr=r+i*dr,nc=c+i*dc;
+          if(nr<0||nc<0||nr>=SIZE||nc>=SIZE||grid[nr][nc]!==word[i]){
             ok=false; break;
           }
           coords.push([nr,nc]);
         }
         if(ok){
           coords.forEach(([rr,cc])=>{
+            let idx=rr*SIZE+cc;
+            permanentHighlight.add(idx);
             cells[rr][cc].classList.add("highlight");
           });
-
-          if(!foundWords.has(word)){
-            foundWords.add(word);
-            score += 10;
-            document.getElementById("score").textContent = score;
-            msg.textContent = "✅ Ditemukan! +10 poin";
-          } else {
-            msg.textContent = "ℹ️ Kata ini sudah pernah ditemukan";
-          }
+          foundWords.add(word);
+          score+=10;
+          document.getElementById("score").textContent=score;
+          msg.textContent="Benar! +10 poin";
           return;
         }
       }
     }
   }
-  msg.textContent="❌ Kata tidak ditemukan";
+  msg.textContent="Belum ditemukan di grid";
 }
+
+/* =============================
+   TIMER
+============================= */
+function updateTimer(){
+  if(gameOver) return;
+
+  timeLeft--;
+  const min=String(Math.floor(timeLeft/60)).padStart(2,"0");
+  const sec=String(timeLeft%60).padStart(2,"0");
+  document.getElementById("time").textContent=`${min}:${sec}`;
+
+  if(timeLeft<=0){
+    endGame();
+  }
+}
+
+function endGame(){
+  gameOver=true;
+  document.getElementById("searchWord").disabled=true;
+  document.getElementById("message").textContent =
+    `Selesai! ${document.getElementById("playerName").value || "Peserta"}, skor akhir: ${score}`;
+}
+
+setInterval(updateTimer,1000);
 </script>
 
 </body>
